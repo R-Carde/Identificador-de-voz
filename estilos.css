@@ -1,0 +1,38 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  margin: 20px;
+}
+
+button {
+  font-size: 18px;
+  padding: 10px 20px;
+}
+
+#status {
+  margin-top: 15px;
+  font-weight: bold;
+  white-space: pre-line;
+}
+
+#pitchBarContainer {
+  width: 80%;
+  height: 20px;
+  background: #eee;
+  margin: 10px auto;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#pitchBar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, #2196f3, #4caf50);
+  transition: width 0.1s;
+}
+
+#genderLive {
+  font-size: 20px;
+  font-weight: bold;
+  margin-top: 10px;
+}
