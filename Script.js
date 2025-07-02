@@ -60,7 +60,7 @@ function startRecording() {
     }
 
     const averagePitch = pitchSum / pitchCount;
-    const gender = averagePitch > 165 ? 'female' : 'male';
+    const gender = averagePitch > 45 ? 'male' : 'female';
 
     pitchBar.style.width = "0%";
     genderLive.textContent = "Esperando...";
