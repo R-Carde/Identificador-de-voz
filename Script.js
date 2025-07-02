@@ -89,16 +89,14 @@ function stopRecording() {
           v.name.toLowerCase().includes("female") ||
           v.name.includes("Mónica") ||
           v.name.includes("Paulina") ||
-          v.name.toLowerCase().includes("es-la")
+          v.lang.toLowerCase().includes("es")
         );
-      } else if (gender === "male") {
-        utterance.voice = availableVoices.find(v =>
-          v.name.toLowerCase().includes("male") ||
-          v.name.includes("Enrique") ||
-          v.name.includes("Jorge") ||
-          v.name.toLowerCase().includes("es-mx")
-        );
-      }
+  } else if (gender === "male") {
+  utterance.voice = availableVoices.find(v =>
+    v.name === "Google español de España" || v.name === "Google español"
+  );
+}
+
 
       speechSynthesis.speak(utterance);
     };
