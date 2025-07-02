@@ -1,159 +1,159 @@
-const voiceBtn = document.getElementById('voiceBtn');
-const pitchBar = document.getElementById('pitchBar');
-const genderLive = document.getElementById('genderLive');
-const statusDiv = document.getElementById('status');
+const startBtn = document.getElementById("startBtn");
+const statusDiv = document.getElementById("status");
 
-let audioContext, stream, source, analyser, pitchInterval;
-let recognition, forceStopTimer;
-let pitchSum = 0;
-let pitchCount = 0;
+let mediaRecorder;
+let audioChunks = [];
+let audioContext;
+let analyser;
+let sourceNode;
+let availableVoices = [];
 
-voiceBtn.addEventListener("mousedown", startRecording);
-voiceBtn.addEventListener("touchstart", startRecording);
-voiceBtn.addEventListener("mouseup", stopRecording);
-voiceBtn.addEventListener("touchend", stopRecording);
+speechSynthesis.onvoiceschanged = () => {
+  availableVoices = speechSynthesis.getVoices();
+};
+speechSynthesis.getVoices();
 
-function startRecording() {
-  statusDiv.textContent = "Grabando... mantén presionado para hablar";
+const recognizer = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+recognizer.lang = "es-ES";
+recognizer.continuous = false;
+recognizer.interimResults = false;
 
-  pitchSum = 0;
-  pitchCount = 0;
+startBtn.addEventListener("mousedown", startRecording);
+startBtn.addEventListener("mouseup", stopRecording);
+startBtn.addEventListener("touchstart", startRecording);
+startBtn.addEventListener("touchend", stopRecording);
 
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(str => {
-    stream = str;
-    audioContext = new AudioContext();
-    source = audioContext.createMediaStreamSource(stream);
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = 2048;
-    source.connect(analyser);
+async function startRecording() {
+  try {
+    recognizer.abort(); // Previene errores si ya estaba corriendo
+  } catch (e) {}
 
-    const dataArray = new Float32Array(analyser.fftSize);
-    const sampleRate = audioContext.sampleRate;
+  audioChunks = [];
 
-    pitchInterval = setInterval(() => {
-      analyser.getFloatTimeDomainData(dataArray);
-      const pitch = detectPitch(dataArray, sampleRate);
-      if (pitch) {
-        pitchSum += pitch;
-        pitchCount++;
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  mediaRecorder = new MediaRecorder(stream);
+  mediaRecorder.start();
 
-        const percent = Math.min((pitch / 300) * 100, 100);
-        pitchBar.style.width = percent + "%";
-        genderLive.textContent = pitch > 165 ? "Voz Femenina (aguda)" : "Voz Masculina (grave)";
-        genderLive.style.color = pitch > 165 ? "deeppink" : "dodgerblue";
-      }
-    }, 100);
+  audioContext = new AudioContext();
+  sourceNode = audioContext.createMediaStreamSource(stream);
+  analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048;
+  sourceNode.connect(analyser);
+
+  mediaRecorder.addEventListener("dataavailable", e => {
+    audioChunks.push(e.data);
   });
 
-  recognition = new webkitSpeechRecognition();
-  recognition.lang = 'es-ES';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
+  statusDiv.textContent = "🎙️ Grabando...";
 
-  recognition.onresult = async (event) => {
-    const text = event.results[0][0].transcript;
-    endAll();
-
-    if (pitchCount === 0) {
-      statusDiv.textContent = "No se detectó voz.";
-      return;
-    }
-
-    const averagePitch = pitchSum / pitchCount;
-    const gender = averagePitch > 45 ? 'male' : 'female';
-
-    pitchBar.style.width = "0%";
-    genderLive.textContent = "Esperando...";
-    statusDiv.textContent = `Texto reconocido: "${text}"
-Pitch promedio: ${averagePitch.toFixed(2)} Hz
-Género detectado: ${gender === 'female' ? 'Femenino' : 'Masculino'}
-Reproduciendo voz...`;
-
-    await speakText(text, gender);
-  };
-
-  recognition.onerror = (e) => {
-    endAll();
-    statusDiv.textContent = "Error: " + e.error;
-  };
-
-  recognition.start();
-
-  forceStopTimer = setTimeout(() => recognition.stop(), 10000); // Respaldo
+  recognizer.start();
 }
 
 function stopRecording() {
-  recognition && recognition.stop(); // Esto activa .onresult o .onend
-}
+  if (!mediaRecorder) return;
+  mediaRecorder.stop();
+  recognizer.stop();
 
-function endAll() {
-  clearInterval(pitchInterval);
-  clearTimeout(forceStopTimer);
-  stream?.getTracks().forEach(track => track.stop());
-  audioContext?.close();
-}
+  mediaRecorder.addEventListener("stop", async () => {
+    const audioBlob = new Blob(audioChunks);
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const pitch = detectPitch(audioBuffer);
+    const averagePitch = pitch.reduce((a, b) => a + b, 0) / pitch.length || 0;
 
-function detectPitch(buffer, sampleRate) {
-  const SIZE = buffer.length;
-  const MAX_SAMPLES = Math.floor(SIZE / 2);
-  let bestOffset = -1;
-  let bestCorrelation = 0;
-  let rms = 0;
+    let gender = "unknown";
+    if (averagePitch > 180) gender = "female";
+    else if (averagePitch < 150) gender = "male";
+    else gender = "ambiguous";
 
-  for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
-  rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01) return null;
+    recognizer.onresult = (event) => {
+      const text = event.results[0][0].transcript;
 
-  let lastCorrelation = 1;
-  for (let offset = 0; offset < MAX_SAMPLES; offset++) {
-    let correlation = 0;
-    for (let i = 0; i < MAX_SAMPLES; i++) {
-      correlation += Math.abs(buffer[i] - buffer[i + offset]);
-    }
-    correlation = 1 - correlation / MAX_SAMPLES;
-    if (correlation > 0.9 && correlation > lastCorrelation) {
-      bestCorrelation = correlation;
-      bestOffset = offset;
-    }
-    lastCorrelation = correlation;
-  }
+      const genderText = {
+        female: "Femenino (voz aguda)",
+        male: "Masculino (voz grave)",
+        ambiguous: "Ambiguo (rango intermedio)",
+        unknown: "No se pudo determinar"
+      }[gender];
 
-  if (bestCorrelation > 0.01) return sampleRate / bestOffset;
-  return null;
-}
+      statusDiv.textContent = `📣 Texto: "${text}"
+🎼 Pitch promedio: ${averagePitch.toFixed(1)} Hz
+🧠 Género detectado: ${genderText}
+🔊 Reproduciendo...`;
 
-let voices = [];
-function loadVoices() {
-  return new Promise(resolve => {
-    voices = window.speechSynthesis.getVoices();
-    if (voices.length !== 0) {
-      resolve(voices);
-    } else {
-      window.speechSynthesis.onvoiceschanged = () => {
-        voices = window.speechSynthesis.getVoices();
-        resolve(voices);
-      };
-    }
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "es-ES";
+
+      if (gender === "female") {
+        utterance.voice = availableVoices.find(v =>
+          v.name.toLowerCase().includes("female") ||
+          v.name.includes("Mónica") ||
+          v.name.includes("Paulina") ||
+          v.name.toLowerCase().includes("es-la")
+        );
+      } else if (gender === "male") {
+        utterance.voice = availableVoices.find(v =>
+          v.name.toLowerCase().includes("male") ||
+          v.name.includes("Enrique") ||
+          v.name.includes("Jorge") ||
+          v.name.toLowerCase().includes("es-mx")
+        );
+      }
+
+      speechSynthesis.speak(utterance);
+    };
+
+    recognizer.onerror = () => {
+      statusDiv.textContent = "❌ No se pudo reconocer lo que dijiste.";
+    };
   });
 }
 
-async function speakText(text, gender) {
-  await loadVoices();
+function detectPitch(audioBuffer) {
+  const inputData = audioBuffer.getChannelData(0);
+  const sampleRate = audioBuffer.sampleRate;
+  const frameSize = 1024;
+  const pitches = [];
 
-  let voice = voices.find(v => {
-    if (gender === 'female') {
-      return v.name.toLowerCase().includes('female') ||
-             v.name.toLowerCase().includes('woman') ||
-             v.name.toLowerCase().includes('maria');
-    } else {
-      return v.name.toLowerCase().includes('male') ||
-             v.name.toLowerCase().includes('man') ||
-             v.name.toLowerCase().includes('david');
+  for (let i = 0; i < inputData.length; i += frameSize) {
+    const segment = inputData.slice(i, i + frameSize);
+    const pitch = autoCorrelate(segment, sampleRate);
+    if (pitch > 50 && pitch < 500) pitches.push(pitch);
+  }
+
+  return pitches;
+}
+
+function autoCorrelate(buffer, sampleRate) {
+  const SIZE = buffer.length;
+  const rms = Math.sqrt(buffer.reduce((sum, val) => sum + val * val, 0) / SIZE);
+  if (rms < 0.01) return -1;
+
+  let r1 = 0, r2 = SIZE - 1;
+  for (let i = 0; i < SIZE / 2; i++) {
+    if (Math.abs(buffer[i]) < 0.2) { r1 = i; break; }
+  }
+  for (let i = 1; i < SIZE / 2; i++) {
+    if (Math.abs(buffer[SIZE - i]) < 0.2) { r2 = SIZE - i; break; }
+  }
+
+  const trimmed = buffer.slice(r1, r2);
+  const c = new Array(trimmed.length).fill(0);
+  for (let i = 0; i < trimmed.length; i++) {
+    for (let j = 0; j < trimmed.length - i; j++) {
+      c[i] = c[i] + trimmed[j] * trimmed[j + i];
     }
-  }) || voices[0];
+  }
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.voice = voice;
-  utterance.lang = 'es-ES';
-  window.speechSynthesis.speak(utterance);
+  let d = 0;
+  while (c[d] > c[d + 1]) d++;
+  let maxval = -1, maxpos = -1;
+  for (let i = d; i < trimmed.length; i++) {
+    if (c[i] > maxval) {
+      maxval = c[i];
+      maxpos = i;
+    }
+  }
+
+  return sampleRate / maxpos;
 }
