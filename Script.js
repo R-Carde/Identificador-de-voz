@@ -1,27 +1,36 @@
-const startBtn = document.getElementById('startBtn');
+const voiceBtn = document.getElementById('voiceBtn');
 const pitchBar = document.getElementById('pitchBar');
 const genderLive = document.getElementById('genderLive');
 const statusDiv = document.getElementById('status');
 
-startBtn.onclick = async () => {
-  statusDiv.textContent = "Iniciando... habla ahora";
+let audioContext, stream, source, analyser, pitchInterval;
+let recognition, forceStopTimer;
+let pitchSum = 0;
+let pitchCount = 0;
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const audioContext = new AudioContext();
-    const source = audioContext.createMediaStreamSource(stream);
-    const analyser = audioContext.createAnalyser();
+voiceBtn.addEventListener("mousedown", startRecording);
+voiceBtn.addEventListener("touchstart", startRecording);
+voiceBtn.addEventListener("mouseup", stopRecording);
+voiceBtn.addEventListener("touchend", stopRecording);
+
+function startRecording() {
+  statusDiv.textContent = "Grabando... mantén presionado para hablar";
+
+  pitchSum = 0;
+  pitchCount = 0;
+
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(str => {
+    stream = str;
+    audioContext = new AudioContext();
+    source = audioContext.createMediaStreamSource(stream);
+    analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
     source.connect(analyser);
 
-    const bufferLength = analyser.fftSize;
-    const dataArray = new Float32Array(bufferLength);
+    const dataArray = new Float32Array(analyser.fftSize);
     const sampleRate = audioContext.sampleRate;
 
-    let pitchSum = 0;
-    let pitchCount = 0;
-
-    function analyzePitch() {
+    pitchInterval = setInterval(() => {
       analyser.getFloatTimeDomainData(dataArray);
       const pitch = detectPitch(dataArray, sampleRate);
       if (pitch) {
@@ -30,64 +39,59 @@ startBtn.onclick = async () => {
 
         const percent = Math.min((pitch / 300) * 100, 100);
         pitchBar.style.width = percent + "%";
-
         genderLive.textContent = pitch > 165 ? "Voz Femenina (aguda)" : "Voz Masculina (grave)";
         genderLive.style.color = pitch > 165 ? "deeppink" : "dodgerblue";
       }
+    }, 100);
+  });
+
+  recognition = new webkitSpeechRecognition();
+  recognition.lang = 'es-ES';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onresult = async (event) => {
+    const text = event.results[0][0].transcript;
+    endAll();
+
+    if (pitchCount === 0) {
+      statusDiv.textContent = "No se detectó voz.";
+      return;
     }
 
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'es-ES';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    const averagePitch = pitchSum / pitchCount;
+    const gender = averagePitch > 165 ? 'female' : 'male';
 
-    recognition.onresult = async (event) => {
-      const text = event.results[0][0].transcript;
-      stream.getTracks().forEach(track => track.stop());
-      audioContext.close();
-      clearInterval(pitchInterval);
-
-      if (pitchCount === 0) {
-        statusDiv.textContent = "No se pudo detectar la frecuencia.";
-        return;
-      }
-
-      const averagePitch = pitchSum / pitchCount;
-      const gender = averagePitch > 2000 ? 'male' : 'female';
-
-      pitchBar.style.width = "0%";
-      genderLive.textContent = "Esperando...";
-      statusDiv.textContent = `Texto reconocido: "${text}"
+    pitchBar.style.width = "0%";
+    genderLive.textContent = "Esperando...";
+    statusDiv.textContent = `Texto reconocido: "${text}"
 Pitch promedio: ${averagePitch.toFixed(2)} Hz
 Género detectado: ${gender === 'female' ? 'Femenino' : 'Masculino'}
 Reproduciendo voz...`;
 
-      await speakText(text, gender);
-    };
+    await speakText(text, gender);
+  };
 
-    recognition.onerror = (event) => {
-      statusDiv.textContent = "Error en el reconocimiento: " + event.error;
-      stream.getTracks().forEach(track => track.stop());
-      audioContext.close();
-      clearInterval(pitchInterval);
-    };
+  recognition.onerror = (e) => {
+    endAll();
+    statusDiv.textContent = "Error: " + e.error;
+  };
 
-    recognition.onend = () => {
-      if (pitchCount === 0) {
-        statusDiv.textContent = "No se detectó voz o no se entendió.";
-        pitchBar.style.width = "0%";
-        genderLive.textContent = "Esperando...";
-      }
-      clearInterval(pitchInterval);
-    };
+  recognition.start();
 
-    recognition.start();
-    const pitchInterval = setInterval(analyzePitch, 100);
+  forceStopTimer = setTimeout(() => recognition.stop(), 10000); // Respaldo
+}
 
-  } catch (e) {
-    statusDiv.textContent = "Error al acceder al micrófono: " + e.message;
-  }
-};
+function stopRecording() {
+  recognition && recognition.stop(); // Esto activa .onresult o .onend
+}
+
+function endAll() {
+  clearInterval(pitchInterval);
+  clearTimeout(forceStopTimer);
+  stream?.getTracks().forEach(track => track.stop());
+  audioContext?.close();
+}
 
 function detectPitch(buffer, sampleRate) {
   const SIZE = buffer.length;
@@ -96,38 +100,25 @@ function detectPitch(buffer, sampleRate) {
   let bestCorrelation = 0;
   let rms = 0;
 
-  for (let i = 0; i < SIZE; i++) {
-    const val = buffer[i];
-    rms += val * val;
-  }
+  for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
   rms = Math.sqrt(rms / SIZE);
   if (rms < 0.01) return null;
 
   let lastCorrelation = 1;
-  let foundGoodCorrelation = false;
-
   for (let offset = 0; offset < MAX_SAMPLES; offset++) {
     let correlation = 0;
     for (let i = 0; i < MAX_SAMPLES; i++) {
       correlation += Math.abs(buffer[i] - buffer[i + offset]);
     }
     correlation = 1 - correlation / MAX_SAMPLES;
-
     if (correlation > 0.9 && correlation > lastCorrelation) {
-      foundGoodCorrelation = true;
-      if (correlation > bestCorrelation) {
-        bestCorrelation = correlation;
-        bestOffset = offset;
-      }
-    } else if (foundGoodCorrelation) {
-      return sampleRate / bestOffset;
+      bestCorrelation = correlation;
+      bestOffset = offset;
     }
     lastCorrelation = correlation;
   }
 
-  if (bestCorrelation > 0.01) {
-    return sampleRate / bestOffset;
-  }
+  if (bestCorrelation > 0.01) return sampleRate / bestOffset;
   return null;
 }
 
