@@ -102,7 +102,7 @@ function stopRecording() {
     };
 
     recognizer.onerror = () => {
-      statusDiv.textContent = "❌ No se pudo reconocer lo que dijiste.";
+      statusDiv.textContent = "❌ No se pudo reconocer lo que dijiste. ❌";
     };
   });
 }
