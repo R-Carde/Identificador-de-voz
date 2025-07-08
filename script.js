@@ -77,9 +77,9 @@ function stopRecording() {
       }[gender];
 
       statusDiv.textContent = `📣 Texto: "${text}"
-🎼 Pitch promedio: ${averagePitch.toFixed(1)} Hz
-🧠 Género detectado: ${genderText}
-🔊 Reproduciendo...`;
+ Pitch promedio: ${averagePitch.toFixed(1)} Hz
+ Género detectado: ${genderText}
+ Reproduciendo...`;
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "es-ES";

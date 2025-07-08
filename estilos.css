@@ -12,3 +12,7 @@ button {
   font-weight: bold;
   white-space: pre-line;
 }
+
+#startBtn:active {
+  opacity: 0.5;
+}
