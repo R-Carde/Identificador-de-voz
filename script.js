@@ -76,10 +76,12 @@ function stopRecording() {
         unknown: "No se pudo determinar"
       }[gender];
 
-      statusDiv.textContent = `📣 Texto: "${text}"
- Pitch promedio: ${averagePitch.toFixed(1)} Hz
- Género detectado: ${genderText}
- Reproduciendo...`;
+  statusDiv.innerHTML = `📣 Texto: "${text}"<br>
+  🎼 Pitch promedio: ${averagePitch.toFixed(1)} Hz<br>
+  🧠 Género detectado: ${genderText}<br>
+  🔊 Reproduciendo...`;
+ statusDiv.className = "";         // Limpia cualquier clase previa
+statusDiv.classList.add(gender); // Aplica la clase del género (male, female o ambiguous)
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = "es-ES";

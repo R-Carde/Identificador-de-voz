@@ -7,20 +7,24 @@
   <link rel="stylesheet" href="estilos.css" />
 </head>
 <body>
-  <div class="encabezado">
-    <img src="/img/logo_utp.png" alt="Logo del proyecto" class="logo">
+  <h1 class="titulo-juego">Repetidor de Voz</h1>
+
+  <div class="contenedor-principal">
+    <div id="status" class="resultado">Presiona el botón para comenzar</div>
+
+    <button id="startBtn" class="btn-microfono">🎤</button>
   </div>
-  <div class="integrantes">
+
+  <footer class="footer">
+    <img src="/img/logo_utp.png" alt="Logo del proyecto" class="logo-footer">
     <h2>Integrantes del equipo</h2>
-    <table>
-      <li>compañero a - uxxxxxx</li>
+    <ul>
+      <li>Rafael Cardenas Namuche - U17201886</li>
       <li>Roberto Benitez Cruzado - U17305100</li>
-      <li>compañero a - uxxxxxx</li>
-    </table>
-  </div>
-  <h1>Habla y te repito con voz según tu tono</h1>
-  <button id="startBtn">Mantén presionado para hablar</button>
-  <div id="status"></div>
+      <li>Cristian Choque - U20209230</li>
+    </ul>
+  </footer>
+
   <script src="script.js"></script>
 </body>
 </html>

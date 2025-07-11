@@ -1,18 +1,133 @@
 body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  margin: 20px;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #111;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
 }
-button {
-  font-size: 18px;
-  padding: 10px 20px;
+.titulo-juego {
+  text-align: center;
+  font-size: 2.5rem;
+  color: white;
+  margin-top: 2rem;
+
 }
 #status {
-  margin-top: 15px;
-  font-weight: bold;
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #1e1e2f;
+  color: #ffffff;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-family: 'Courier New', monospace;
+  box-shadow: 0 0 10px rgba(0, 255, 150, 0.3);
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left;
   white-space: pre-line;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+.contenedor-principal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  padding: 20px;
 }
 
-#startBtn:active {
-  opacity: 0.5;
+.resultado {
+  font-size: 1.2em;
+  margin-bottom: 20px;
+  text-align: center;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: #333;
+  min-height: 100px;
+  max-width: 90%;
+  transition: background-color 0.3s;
+}
+
+/* Colores según género */
+.resultado.femenino {
+  background-color: #ff69b4;
+}
+
+.resultado.masculino {
+  background-color: #1e90ff;
+}
+
+.resultado.ambiguo {
+  background-color: #ffa500;
+}
+
+.resultado.error {
+  background-color: #ff4444;
+}
+
+.btn-microfono {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background-color: #555;
+  color: white;
+  font-size: 2em;
+  border: none;
+  outline: none;
+  transition: background-color 0.3s, transform 0.1s;
+  position: fixed;
+  bottom: 300px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.btn-microfono:active {
+  background-color: #4caf50;
+  transform: translateX(-50%) scale(1.1);
+}
+/* Géneros con colores */
+.male {
+  background-color: #003366 !important;
+  border-color: #004080;
+  color: #a0d2ff;
+}
+
+.female {
+  background-color: #800040 !important;
+  border-color: #cc0066;
+  color: #ffc0e0;
+}
+
+.ambiguous {
+  background-color: #4b0082 !important;
+  border-color: #9932cc;
+  color: #e0ccff;
+}
+
+.footer {
+    background-color: #222;
+    color: #ccc;
+    /* text-align: center; */
+    padding: 20px;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.footer .logo-footer {
+    max-width: 100px;
+    margin: 0 2rem;
+}
+
+.footer ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
