@@ -4,12 +4,31 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Repetidor de Voz con Género</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="estilos.css" />
 </head>
 <body>
-  <h1>Habla y te repito con voz según tu tono</h1>
-  <button id="startBtn">Mantén presionado para hablar</button>
-  <div id="status"></div>
+  <h1 class="titulo-juego">Identificador de voz con clasificación de género basado en el análisis del tono y síntesis de voz en tiempo real
+</h1>
+
+  <div class="contenedor-microfono">
+    <button id="startBtn" class="btn-microfono">🎤</button>
+  </div>
+
+  <br><br>
+  <div class="contenedor-principal">
+    <div id="status" class="resultado">Presiona el botón para comenzar</div>
+  </div>
+
+  <footer class="footer">
+    <img src="/img/logo_utp.png" alt="Logo del proyecto" class="logo-footer">
+    <h2>Integrantes del equipo</h2>
+    <ul>
+      <li>Rafael Cardenas Namuche - U17201886</li>
+      <li>Roberto Benitez Cruzado - U17305100</li>
+      <li>Cristian Choque - U20209230</li>
+    </ul>
+  </footer>
+
   <script src="script.js"></script>
 </body>
 </html>
