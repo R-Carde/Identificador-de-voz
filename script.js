@@ -63,8 +63,8 @@ function stopRecording() {
 
     let gender = "unknown";
     if (averagePitch > 180) gender = "female";
-    else if (averagePitch < 150) gender = "male";
-    else gender = "ambiguous";
+    //else if (averagePitch < 150) gender = "male";
+    else gender = "male";
 
     recognizer.onresult = (event) => {
       const text = event.results[0][0].transcript;
