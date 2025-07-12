@@ -63,7 +63,6 @@ function stopRecording() {
 
     let gender = "unknown";
     if (averagePitch > 180) gender = "female";
-    //else if (averagePitch < 150) gender = "male";
     else gender = "male";
 
     recognizer.onresult = (event) => {
@@ -124,6 +123,10 @@ function detectPitch(audioBuffer) {
   return pitches;
 }
 
+/**
+ * Auto Correlate
+ */
+
 function autoCorrelate(buffer, sampleRate) {
   const SIZE = buffer.length;
   const rms = Math.sqrt(buffer.reduce((sum, val) => sum + val * val, 0) / SIZE);
@@ -157,3 +160,4 @@ function autoCorrelate(buffer, sampleRate) {
 
   return sampleRate / maxpos;
 }
+
